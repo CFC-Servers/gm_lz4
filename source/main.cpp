@@ -1,87 +1,157 @@
 #include "GarrysMod/Lua/Interface.h"
+#include "GarrysMod/Lua/LuaGameCallback.h"
 #include <thread>
+#include <functional>
 #include <iostream>
+#include <lz4.h>
 #include <lz4frame.h>
+#include <lz4frame_static.h>
+#include <lz4hc.h>
 #include <cstring>
+#include <vector>
+#include <mutex>
+#include <queue>
 
 namespace global {
 
-LUA_FUNCTION_STATIC(CompressString) {
-    const char* input = LUA->GetString(1);
-    size_t input_size = LUA->StringLength(1);
+// Thread-safe task queue
+std::mutex taskQueueMutex;
+std::queue<std::function<void()>> taskQueue;
 
+void ScheduleOnMainThread(std::function<void()> task) {
+    std::unique_lock<std::mutex> lock(taskQueueMutex);
+    taskQueue.push(task);
+}
+
+
+std::vector<char> CompressStringInternal(const char *input, size_t input_size) {
     // Set up preferences and compressor
     LZ4F_preferences_t prefs;
     memset(&prefs, 0, sizeof(prefs));
     prefs.frameInfo.blockSizeID = LZ4F_max64KB;
     prefs.frameInfo.blockMode = LZ4F_blockLinked;
     prefs.frameInfo.contentChecksumFlag = LZ4F_contentChecksumEnabled;
-    prefs.compressionLevel = 0;
+    prefs.compressionLevel = 9;
 
-    LZ4F_compressionContext_t ctx;
-    size_t ctxSize = 0;
+    LZ4F_cctx* ctx;
     LZ4F_errorCode_t err = LZ4F_createCompressionContext(&ctx, LZ4F_VERSION);
     if (LZ4F_isError(err)) {
-        // Handle error
-        LUA->ThrowError("LZ4F_createCompressionContext error");
-        return 1;
-    }
-
-    err = LZ4F_getBlockSize(ctx, &prefs.frameInfo, &prefs.compressionLevel);
-    if (LZ4F_isError(err)) {
-        // Handle error
-        LZ4F_freeCompressionContext(ctx);
-        LUA->ThrowError("LZ4F_getBlockSize error");
-        return 1;
+        throw std::runtime_error("LZ4F_createCompressionContext error");
     }
 
     std::vector<char> compressed_data(LZ4F_compressBound(input_size, &prefs));
 
-    size_t compressed_size = LZ4F_compressBegin(ctx, compressed_data.data(), compressed_data.size(), &prefs);
-    if (LZ4F_isError(compressed_size)) {
-        // Handle error
+    size_t header_size = LZ4F_compressBegin(ctx, compressed_data.data(), compressed_data.size(), &prefs);
+    if (LZ4F_isError(header_size)) {
         LZ4F_freeCompressionContext(ctx);
-        LUA->ThrowError("LZ4F_compressBegin error");
-        return 1;
+        throw std::runtime_error("LZ4F_compressBegin error");
     }
 
-    size_t input_pos = 0, output_pos = compressed_size;
-    size_t block_size = prefs.frameInfo.blockSizeID * 1024;
+    size_t input_pos = 0, output_pos = header_size;
     while (input_pos < input_size) {
         size_t input_remaining = input_size - input_pos;
-        size_t block_remaining = block_size - (output_pos - compressed_size);
-        size_t chunk_size = (input_remaining < block_remaining) ? input_remaining : block_remaining;
+        size_t dst_capacity = LZ4F_compressBound(input_remaining, &prefs);
 
-        err = LZ4F_compressUpdate(ctx, compressed_data.data() + output_pos, compressed_data.size() - output_pos, input + input_pos, chunk_size, NULL);
-        if (LZ4F_isError(err)) {
-            // Handle error
-            LZ4F_freeCompressionContext(ctx);
-            LUA->ThrowError("LZ4F_compressUpdate error");
-            return 1;
+        if (compressed_data.size() - output_pos < dst_capacity) {
+            compressed_data.resize(output_pos + dst_capacity);
         }
 
-        input_pos += chunk_size;
+        err = LZ4F_compressUpdate(ctx, compressed_data.data() + output_pos, compressed_data.size() - output_pos, input + input_pos, input_remaining, NULL);
+        if (LZ4F_isError(err)) {
+            LZ4F_freeCompressionContext(ctx);
+            throw std::runtime_error("LZ4F_compressUpdate error");
+        }
+
+        input_pos += input_remaining;
         output_pos += err;
     }
 
-    size_t flush_size = LZ4F_compressEnd(ctx, compressed_data.data() + output_pos, compressed_data.size() - output_pos, NULL);
-    if (LZ4F_isError(flush_size)) {
-        // Handle error
+    size_t end_size = LZ4F_compressEnd(ctx, compressed_data.data() + output_pos, compressed_data.size() - output_pos, NULL);
+    if (LZ4F_isError(end_size)) {
         LZ4F_freeCompressionContext(ctx);
-        LUA->ThrowError("LZ4F_compressEnd error");
-        return 1;
+        throw std::runtime_error("LZ4F_compressEnd error");
     }
 
-    output_pos += flush_size;
+    output_pos += end_size;
 
     LZ4F_freeCompressionContext(ctx);
 
-    LUA->PushLString(compressed_data.data(), output_pos);
+    compressed_data.resize(output_pos);
+    return compressed_data;
+}
+
+
+void CompressStringAsyncFunction(const std::string &input, std::function<void(const std::vector<char> &)> callback) {
+    try {
+        std::vector<char> compressed_data = CompressStringInternal(input.data(), input.size());
+        callback(compressed_data);
+    } catch (const std::runtime_error &e) {
+        std::cerr << "CompressStringAsyncFunction error: " << e.what() << std::endl;
+    }
+}
+
+LUA_FUNCTION_STATIC(CompressString) {
+    size_t input_size = 0;
+    const char *input = LUA->GetString(1, &input_size);
+
+    try {
+        std::vector<char> compressed_data = CompressStringInternal(input, input_size);
+        LUA->PushString(compressed_data.data(), compressed_data.size());
+    } catch (const std::runtime_error &e) {
+        LUA->ThrowError(e.what());
+    }
 
     return 1;
 }
 
 
+LUA_FUNCTION_STATIC(CompressStringAsync) {
+    size_t input_size = 0;
+    const char *input = LUA->GetString(1, &input_size);
+    std::string input_str(input, input_size);
+
+    LUA->CheckType(2, GarrysMod::Lua::Type::FUNCTION);
+
+    // Store the callback function reference in the registry
+    LUA->Push(2);
+    int callbackRef = LUA->ReferenceCreate();
+
+    // Create a new thread to run the compression asynchronously
+    std::thread([=]() {
+        // Call the async function with the captured input and callback
+        CompressStringAsyncFunction(input_str, [LUA, callbackRef](const std::vector<char> &compressed_data) {
+            ScheduleOnMainThread([=]() {
+                // Get the callback function from the registry
+                LUA->ReferencePush(callbackRef);
+                LUA->PushString(compressed_data.data(), compressed_data.size());
+
+                // Call the callback function
+                LUA->Call(1, 0);
+
+                // Free the callback function reference
+                LUA->ReferenceFree(callbackRef);
+            });
+        });
+    }).detach();
+
+    return 0;
+}
+
+LUA_FUNCTION_STATIC(Think) {
+    std::unique_lock<std::mutex> lock(taskQueueMutex);
+
+    while (!taskQueue.empty()) {
+        auto task = taskQueue.front();
+        taskQueue.pop();
+        lock.unlock();
+
+        task();
+
+        lock.lock();
+    }
+
+    return 0;
+}
 
 
 static void Initialize(GarrysMod::Lua::ILuaBase *LUA) {
@@ -90,7 +160,22 @@ static void Initialize(GarrysMod::Lua::ILuaBase *LUA) {
     LUA->PushCFunction(CompressString);
     LUA->SetField(-2, "CompressString");
 
+    LUA->PushCFunction(CompressStringAsync);
+    LUA->SetField(-2, "CompressStringAsync");
+
+    // LUA->PushCFunction(DecompressString);
+    // LUA->SetField(-2, "DecompressString");
+
     LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "lz4");
+
+    LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+    LUA->GetField(-1, "hook");
+    LUA->GetField(-1, "Add");
+    LUA->PushString("Think");
+    LUA->PushString("MyModule_Think");
+    LUA->PushCFunction(Think);
+    LUA->Call(3, 0);
+    LUA->Pop(2);
 }
 
 static void Deinitialize(GarrysMod::Lua::ILuaBase *LUA) {

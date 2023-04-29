@@ -12,9 +12,10 @@ include(gmcommon)
 
 CreateWorkspace({name = "lz4", abi_compatible = true})
     CreateProject({serverside = true})
+        includedirs({"./lz4/lib"})
+        links({"lz4"})
         IncludeLuaShared()
         files({
             "source/*.cpp",
             "source/*.h"
         })
-        includedirs({"lz4/lib"})
