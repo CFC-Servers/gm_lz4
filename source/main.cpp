@@ -11,7 +11,6 @@
 #include <vector>
 #include <mutex>
 #include <queue>
-#include "dbg.h"
 
 namespace global {
 
@@ -23,7 +22,6 @@ void ScheduleOnMainThread(std::function<void()> task) {
     std::unique_lock<std::mutex> lock(taskQueueMutex);
     taskQueue.push(task);
 }
-
 
 std::vector<char> DecompressStringInternal(const char *input, size_t input_size) {
     LZ4F_dctx *dctx;
@@ -48,14 +46,6 @@ std::vector<char> DecompressStringInternal(const char *input, size_t input_size)
     size_t src_pos = input_consumed, dst_pos = 0;
     LZ4F_decompressOptions_t options = {0};
 
-    DevMsg("Input size (compressed): %zu\n", input_size);
-    DevMsg("Input data (compressed): ");
-    for (size_t i = 0; i < input_size; ++i) {
-        DevMsg("%02X", static_cast<unsigned char>(input[i]));
-    }
-    DevMsg("\n");
-    DevMsg("Decompressed data size: %zu\n", decompressed_data_size);
-
     while (src_pos < input_size) {
         size_t src_size = input_size - src_pos;
         size_t dst_size = decompressed_data_size - dst_pos;
@@ -71,7 +61,6 @@ std::vector<char> DecompressStringInternal(const char *input, size_t input_size)
 
         src_pos += err_decompress;
         dst_pos += dst_size;
-        DevMsg("Decompression progress: src_pos = %zu, dst_pos = %zu, src_size = %zu, dst_size = %zu\n", src_pos, dst_pos, src_size, dst_size);
 
         // Check if the decompression process is completed
         if (err_decompress == 0) {
@@ -79,17 +68,10 @@ std::vector<char> DecompressStringInternal(const char *input, size_t input_size)
         }
     }
 
-    DevMsg("Decompression finished: src_pos = %zu, dst_pos = %zu\n", src_pos, dst_pos);
-
-
-
     LZ4F_freeDecompressionContext(dctx);
     decompressed_data.resize(dst_pos);
     return decompressed_data;
 }
-
-
-
 
 void DecompressStringAsyncFunction(const std::string &compressed_data, std::function<void(const std::vector<char> &)> callback) {
     try {
@@ -148,13 +130,6 @@ LUA_FUNCTION_STATIC(DecompressStringAsync) {
 
 
 std::vector<char> CompressStringInternal(const char *input, size_t input_size) {
-    DevMsg("Input size: %zu\n", input_size);
-    DevMsg("Input data: ");
-    for (size_t i = 0; i < input_size; ++i) {
-        DevMsg("%02X", static_cast<unsigned char>(input[i]));
-    }
-    DevMsg("\n");
-
     // Set up preferences and compressor
     LZ4F_preferences_t prefs;
     memset(&prefs, 0, sizeof(prefs));
@@ -209,13 +184,6 @@ std::vector<char> CompressStringInternal(const char *input, size_t input_size) {
     LZ4F_freeCompressionContext(ctx);
 
     compressed_data.resize(output_pos);
-
-    DevMsg("Compressed size: %zu\n", compressed_data.size());
-    DevMsg("Compressed data: ");
-    for (size_t i = 0; i < compressed_data.size(); ++i) {
-        DevMsg("%02X", static_cast<unsigned char>(compressed_data[i]));
-    }
-    DevMsg("\n");
 
     return compressed_data;
 }
@@ -292,29 +260,7 @@ LUA_FUNCTION_STATIC(Think) {
     return 0;
 }
 
-
-void TestCompressionDecompression(GarrysMod::Lua::ILuaBase *LUA) {
-    std::string input_str = "This is a test string to check compression and decompression.";
-    std::vector<char> compressed_data = CompressStringInternal(input_str.data(), input_str.size());
-    DevMsg("Compressed size: %d\n", compressed_data.size());
-
-    try {
-        std::vector<char> decompressed_data = DecompressStringInternal(compressed_data.data(), compressed_data.size());
-        std::string decompressed_str(decompressed_data.begin(), decompressed_data.end());
-        DevMsg("Decompressed size: %d\n", decompressed_str.size());
-        DevMsg("Decompressed data: ");
-        for (size_t i = 0; i < decompressed_str.size(); ++i) {
-            DevMsg("%02X", static_cast<unsigned char>(decompressed_str[i]));
-        }
-        DevMsg("\n");
-    } catch (const std::runtime_error &e) {
-        LUA->ThrowError(e.what());
-    }
-}
-
-
 static void Initialize(GarrysMod::Lua::ILuaBase *LUA) {
-    TestCompressionDecompression(LUA);
     LUA->CreateTable();
 
     LUA->PushCFunction(CompressString);
