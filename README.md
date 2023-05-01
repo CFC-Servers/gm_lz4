@@ -4,6 +4,8 @@ Introducing **gm_lz4**, a high-performance Garry's Mod server-side module that p
 
 It offers basic synchronous functions as well as asynchronous functions that run in a separate thread, preventing server freezes even when handling extremely large datasets.
 
+_**Note:** LZ4 is **not** compatible with LZMA, this module is an alternative for the base util functions, not a drop-in replacement (though I am working on an async LZMA module as well)_
+
 ## 📚 Description
 
 LZ4, a compression algorithm known for its "extremely fast decoding, with speed in multiple GB/s per core", outperforms Garry's Mod's default LZMA-powered util functions.
