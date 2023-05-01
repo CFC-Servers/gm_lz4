@@ -58,7 +58,6 @@ std::vector<char> DecompressStringInternal(const char *input, size_t input_size)
             throw std::runtime_error(error_msg);
         }
 
-
         src_pos += err_decompress;
         dst_pos += dst_size;
 
@@ -81,7 +80,6 @@ void DecompressStringAsyncFunction(const std::string &compressed_data, std::func
         std::cerr << "DecompressStringAsyncFunction error: " << e.what() << std::endl;
     }
 }
-
 
 LUA_FUNCTION_STATIC(DecompressString) {
     size_t input_size = 0;
@@ -127,7 +125,6 @@ LUA_FUNCTION_STATIC(DecompressStringAsync) {
 
     return 0;
 }
-
 
 std::vector<char> CompressStringInternal(const char *input, size_t input_size) {
     // Set up preferences and compressor
@@ -188,7 +185,6 @@ std::vector<char> CompressStringInternal(const char *input, size_t input_size) {
     return compressed_data;
 }
 
-
 void CompressStringAsyncFunction(const std::string &input, std::function<void(const std::vector<char> &)> callback) {
     try {
         std::vector<char> compressed_data = CompressStringInternal(input.data(), input.size());
@@ -211,7 +207,6 @@ LUA_FUNCTION_STATIC(CompressString) {
 
     return 1;
 }
-
 
 LUA_FUNCTION_STATIC(CompressStringAsync) {
     size_t input_size = 0;
