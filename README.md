@@ -1,12 +1,17 @@
-# gm_lz4
+# gm_lz4 🚀
 
-A high-performance Garry's Mod server-side module that provides an ultra-fast alternative to Garry's Mod's built-in util.Compress and util.Decompress functions using the LZ4 compression algorithm. In addition to synchronous compression and decompression, gm_lz4 offers asynchronous functions that run in a separate thread, ensuring smooth gameplay even when working with large data.
+Introducing **gm_lz4**, a high-performance Garry's Mod server-side module that provides a lightning-fast alternative to Garry's Mod's built-in `util.Compress` and `util.Decompress` functions, leveraging the power of the [LZ4](https://lz4.github.io/lz4/) compression algorithm.
 
-## Description
+Enjoy synchronous and asynchronous functions than run on a separate thread, ensuring smooth gameplay even when handling large data.
 
-LZ4 is a compression algorithm that boasts "extremely fast decoding, with speed in multiple GB/s per core". In contrast, Garry's Mod's default LZMA-powered util functions can be painfully slow. Although they offer an excellent compression ratio, they make working with large data in Garry's Mod challenging.
+## 📚 Description
 
-### Benchmark
+LZ4, a compression algorithm known for its "extremely fast decoding, with speed in multiple GB/s per core", outperforms Garry's Mod's default LZMA-powered util functions.
+While LZMA offers an excellent compression ratio, its sluggish performance makes working with large data in Garry's Mod a challenge.
+
+LZ4 prioritizes speed over compression ratio. It's roughly 4-6x faster than Garry's Mod's LZMA, but produces a result that is approximately 30% larger.
+
+### ⚡ Benchmark
 
 **Input**: 35.77 MB of JSON-ified table data
 | Method | Avg. Time | Ratio |
@@ -16,15 +21,15 @@ LZ4 is a compression algorithm that boasts "extremely fast decoding, with speed 
 
 _Note: The seven-second processing time for `util.Compress` would cause the game and all players to freeze for seven consecutive seconds if run server-side._
 
-In general, `lz4.Compress` is 4-6 times faster than util.Compress but produces a result that is approximately 30% larger.
-Use cases
+### 🎯 Use Cases
+`gm_lz4` excels in situations where speed takes precedence over compression ratio.
 
-`gm_lz4` is ideal for situations where speed is more crucial than compression ratio. It is best suited for add-ons that require handling large amounts of data at once. Even when dealing with non-time-sensitive data, lz4.Compress is preferable, as it doesn't lock up your server for nearly as long.
-Asynchronous Functions
+It's an ideal choice for addons that need to handle large amounts of data. Even for non-time-sensitive data, `lz4.Compress` may still be preferable as it doesn't lock up your server for long periods.
 
-While the `gm_lz4` module is already incredibly fast, it also offers asynchronous alternatives for both compressing and decompressing, ensuring smooth server performance.
+###  🧩 Asynchronous Functions
+The `gm_lz4` module, while already blazing fast, also provides asynchronous alternatives for both compressing and decompressing to ensure smooth server performance.
 
-## Usage
+## 🛠️ Usage
 
 ```lua
 require( "lz4" )
@@ -45,6 +50,3 @@ lz4.CompressAsync( serialized, function( compressed )
         assert( decompressed == serialized )
     end )
 end )
-
-## Building
-TODO: Write better instructions than danielga :)
