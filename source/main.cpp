@@ -264,23 +264,23 @@ static void Initialize(GarrysMod::Lua::ILuaBase *LUA) {
     LUA->CreateTable();
 
     LUA->PushCFunction(CompressString);
-    LUA->SetField(-2, "CompressString");
+    LUA->SetField(-2, "Compress");
 
     LUA->PushCFunction(CompressStringAsync);
-    LUA->SetField(-2, "CompressStringAsync");
+    LUA->SetField(-2, "CompressAsync");
 
     LUA->PushCFunction(DecompressString);
-    LUA->SetField(-2, "DecompressString");
+    LUA->SetField(-2, "Decompress");
 
     LUA->PushCFunction(DecompressStringAsync);
-    LUA->SetField(-2, "DecompressStringAsync");
+    LUA->SetField(-2, "DecompressAsync");
 
     LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "lz4");
 
     LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
     LUA->GetField(-1, "timer");
     LUA->GetField(-1, "Create");
-    LUA->PushString("MyModule_Think");
+    LUA->PushString("LZ4AsyncThink");
     LUA->PushNumber(0);
     LUA->PushNumber(0);
     LUA->PushCFunction(Think);
