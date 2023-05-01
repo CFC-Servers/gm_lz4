@@ -19,7 +19,7 @@ LZ4 prioritizes speed over compression ratio. It's roughly 4-6x faster than Garr
 | util.Compress | 6.912s | `2.1`:`1` |
 | lz4.Compress | 1.503s | `1.4`:`1` |
 
-_Note: The seven-second processing time for `util.Compress` would cause the game and all players to freeze for seven consecutive seconds if run server-side._
+_Note: `util.Compress` in this case would cause the game and all players to freeze for almost _seven full seconds_ if run server-side._
 
 ### 🎯 Use Cases
 `gm_lz4` excels in situations where speed takes precedence over compression ratio.
