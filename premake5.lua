@@ -15,6 +15,8 @@ CreateWorkspace({name = "lz4", abi_compatible = true})
         includedirs({"./lz4/lib"})
         links({"lz4"})
         IncludeLuaShared()
+        IncludeSDKCommon()
+        IncludeSDKTier0()
         files({
             "source/*.cpp",
             "source/*.h"
