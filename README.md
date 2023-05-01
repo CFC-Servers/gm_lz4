@@ -2,7 +2,7 @@
 
 Introducing **gm_lz4**, a high-performance Garry's Mod server-side module that provides a lightning-fast alternative to Garry's Mod's built-in `util.Compress` and `util.Decompress` functions, leveraging the power of the [LZ4](https://lz4.github.io/lz4/) compression algorithm.
 
-Enjoy synchronous and asynchronous functions than run on a separate thread, ensuring smooth gameplay even when handling large data.
+It offers basic synchronous functions as well as asynchronous functions that run in a separate thread, preventing server freezes even when handling extremely large datasets.
 
 ## 📚 Description
 
