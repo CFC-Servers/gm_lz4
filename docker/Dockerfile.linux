@@ -1,0 +1,30 @@
+FROM ubuntu:18.04
+LABEL Description="Build environment"
+
+ENV HOME /root
+
+SHELL ["/bin/bash", "-c"]
+
+RUN apt-get update && apt-get -y --no-install-recommends install \
+    build-essential \
+    clang \
+    cmake \
+    gdb \
+    wget \
+
+RUN mkdir $HOME/premake5 && cd $HOME/premake5 && \
+    wget --no-check-certifiate --quiet https://github.com/premake/premake-core/releases/download/v5.0.0-beta2/premake-5.0.0-beta2-linux.tar.gz && \
+    tar -xzf ./premake-5.0.0-beta2-linux.tar.gz && \
+    mv $HOME/premake5/premake5 $HOME && \
+    chmod +x $HOME/premake5
+
+COPY lz4/ $HOME/lz4
+RUN cd $HOME/lz4 && make clean && make build && make install
+
+COPY garrysmod_common $HOME/garrysmod_common
+ENV $GARRYSMOD_COMMON = $HOME/garrysmod_common
+COPY linux.sh $HOME/linux.sh
+COPY source/ $HOME/source
+COPY premake5.lua $HOME/premake5.lua
+
+ENTRYPOINT [ "linux.sh" ]
