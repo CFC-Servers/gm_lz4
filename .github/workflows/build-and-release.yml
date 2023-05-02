@@ -1,0 +1,88 @@
+name: Build and Release
+
+on:
+  push:
+
+jobs:
+  build_and_release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            dockerfile: 'docker/Dockerfile.linux'
+            output_name: 'gmsv_lz4_linux32.dll'
+          - os: windows-latest
+            dockerfile: 'docker/Dockerfile.windows'
+            output_name: 'gmsv_lz4_windows32.dll'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
+        run: docker build -f ${{ matrix.dockerfile }} -t gmlz4 .
+
+      - name: Run container and export binary
+        run: |
+          docker run --name gmlz4_container gmlz4
+          docker cp gmlz4_container:/output/ ./${{ matrix.output_name }}
+          docker rm gmlz4_container
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.output_name }}
+          path: ./${{ matrix.output_name }}
+
+  create_release:
+    needs: build_and_release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: ./artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: "[TEST] Release ${{ github.ref }}"
+          draft: true
+          prerelease: false
+
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/binary-linux
+          asset_name: binary-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/binary-windows
+          asset_name: binary-windows
+          asset_content_type: application/octet-stream

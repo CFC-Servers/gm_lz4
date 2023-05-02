@@ -10,7 +10,7 @@ local gmcommon = assert( _OPTIONS.gmcommon or os.getenv( "GARRYSMOD_COMMON" ),
     "you didn't provide a path to your garrysmod_common (https://github.com/danielga/garrysmod_common) directory" )
 include( gmcommon )
 
-CreateWorkspace( { name = "lz4", abi_compatible = true } )
+CreateWorkspace( { name = "lz4", abi_compatible = true, architechture = "x86" } )
     CreateProject( { serverside = true } )
         includedirs( { "./lz4/lib" } )
         links( { "lz4" } )
@@ -20,3 +20,11 @@ CreateWorkspace( { name = "lz4", abi_compatible = true } )
         files( {
             "source/main.cpp",
         } )
+
+filter "system:linux"
+    links { "pthread" }
+
+filter "system:windows"
+    links { "lz4" }
+    systemversion "latest"
+
