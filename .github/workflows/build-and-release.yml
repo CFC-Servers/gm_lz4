@@ -37,8 +37,11 @@ jobs:
 
       - name: Run container and export binary
         run: |
-          docker run --name gmlz4_container gmlz4
-          docker cp gmlz4_container:/output/ ./${{ matrix.output_name }}
+          docker run \
+            --name gmlz4_container \
+            --mount type=bind,source="$(pwd)"/output,target=/output \
+            gmlz4
+          cp "$(pwd)"/output/* ./${{ matrix.output_name }}
           docker rm gmlz4_container
 
       - name: Upload artifact
