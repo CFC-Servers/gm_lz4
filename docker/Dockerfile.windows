@@ -1,5 +1,7 @@
 # Use the Windows Server Core image
-FROM mcr.microsoft.com/windows/servercore:ltsc2022
+FROM mcr.microsoft.com/windows/servercore:ltsc2019
+
+RUN mkdir C:\TEMP
 
 # Download and install Visual Studio Build Tools 2019
 ADD https://aka.ms/vs/16/release/vs_buildtools.exe C:/TEMP/vs_buildtools.exe
@@ -11,20 +13,19 @@ RUN powershell.exe -Command \
     Start-Process C:\TEMP\Git.exe -ArgumentList '/VERYSILENT', '/NORESTART' -NoNewWindow -Wait; \
     Invoke-WebRequest https://github.com/Kitware/CMake/releases/download/v3.20.5/cmake-3.20.5-windows-x86_64.zip -OutFile C:\TEMP\cmake.zip; \
     Expand-Archive C:\TEMP\cmake.zip -DestinationPath C:\TEMP; \
-    Copy-Item C:\TEMP\cmake-3.20.5-windows-x86_64\bin\cmake.exe C:\Windows\System32\
+    Copy-Item C:\TEMP\cmake-3.20.5-windows-x86_64\bin\cmake.exe C:\Windows\System32;
 
 # Download and install premake5
 RUN powershell.exe -Command \
     Invoke-WebRequest https://github.com/premake/premake-core/releases/download/v5.0.0-beta2/premake-5.0.0-beta2-windows.zip -OutFile C:\TEMP\premake5.zip; \
     Expand-Archive C:\TEMP\premake5.zip -DestinationPath C:\TEMP; \
-    Copy-Item C:\TEMP\premake5.exe C:\Windows\System32\
+    Copy-Item C:\TEMP\premake5.exe C:\Windows\System32;
 
 # Set environment variables for MSBuild and VC++ directories
 ENV MSBUILD_PATH="C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin"
-ENV VC_TOOLS_PATH="C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC"
 
 COPY source/ C:/root/source/
 COPY premake5.lua C:/root/premake5.lua
-COPY docker/windows.bat C:/root/windows.bat
+COPY windows.bat C:/root/windows.bat
 
-CMD ["cmd", "/c", "msbuild.exe", "MyProject.sln", "/t:Rebuild", "/p:Configuration=Release"]
+CMD ["cmd", "/c", "C:/root/windows.bat"]
