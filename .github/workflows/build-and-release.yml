@@ -13,7 +13,7 @@ jobs:
           - os: ubuntu-latest
             dockerfile: 'docker/Dockerfile.linux'
             output_name: 'gmsv_lz4_linux32.dll'
-          - os: windows-latest
+          - os: windows-2019
             dockerfile: 'docker/Dockerfile.windows'
             output_name: 'gmsv_lz4_windows32.dll'
 
@@ -76,8 +76,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/binary-linux
-          asset_name: binary-linux
+          asset_path: ./artifacts/gmsv_lz4_linux32.dll
+          asset_name: gmsv_lz4_linux32.dll
           asset_content_type: application/octet-stream
 
       - name: Upload release assets
@@ -86,6 +86,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/binary-windows
-          asset_name: binary-windows
+          asset_path: ./artifacts/gmsv_lz4_windows32.dll
+          asset_name: gmsv_lz4_windows32.dll
           asset_content_type: application/octet-stream
