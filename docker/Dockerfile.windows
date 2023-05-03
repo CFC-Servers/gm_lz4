@@ -26,6 +26,6 @@ ENV MSBUILD_PATH="C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools
 
 COPY source/ C:/root/source/
 COPY premake5.lua C:/root/premake5.lua
-COPY windows.bat C:/root/windows.bat
+COPY docker/windows.bat C:/root/windows.bat
 
 CMD ["cmd", "/c", "C:/root/windows.bat"]
