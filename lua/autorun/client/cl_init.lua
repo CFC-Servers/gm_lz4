@@ -1,0 +1,20 @@
+hook.Add( "Think", "testing", function()
+    hook.Remove( "Think", "testing" )
+
+    timer.Simple( 10, function()
+        require( "lz4" )
+        local dat1 = pon.encode( gb.RandomTable( 675000 ) )
+        print( "Generated:", #dat1 )
+
+        lz4.CompressAsync( dat1, function( res )
+            print( res )
+            print( "Got it:", #dat1, "->", #res )
+            print( "Measuring util.Compress" )
+
+            local compstart = SysTime()
+            local v  = util.Compress( dat1 )
+            print( "util.Compress took:", SysTime() - compstart )
+            assert( #v > 0 )
+        end )
+    end )
+end )
